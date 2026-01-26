@@ -12,6 +12,6 @@ public class HealthController {
 
     @GetMapping
     public ApiResponse<String> health() {
-        return new ApiResponse<>(true, "Service is up", "Attendance Backend is running");
+        return new ApiResponse<>(true, "uptime", "server is running");
     }
 }

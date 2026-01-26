@@ -1,3 +1,19 @@
+server:
+  port: 8080
+
 spring:
   application:
     name: attendancebackend
+
+  data:
+    mongodb:
+      uri: mongodb+srv://kappalaharshith_db_user:bablu080605@attendanceuser.hc1xytu.mongodb.net/attendance_db?appName=attendanceuser
+
+logging:
+  level:
+    org.springframework: INFO
+
+jwt:
+  # MUST be at least 32 characters for HS256
+  secret: attendance-secret-key-should-be-at-least-32-characters-long
+  expiration-ms: 86400000   # 24 hours
