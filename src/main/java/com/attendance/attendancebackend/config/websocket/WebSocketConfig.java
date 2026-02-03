@@ -9,10 +9,16 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 @EnableWebSocket
 public class WebSocketConfig implements WebSocketConfigurer {
 
+    private final AttendanceWebSocketHandler handler;
+
+    public WebSocketConfig(AttendanceWebSocketHandler handler) {
+        this.handler = handler;
+    }
+
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry
-            .addHandler(new DummyWebSocketHandler(), "/ws")
+            .addHandler(handler, "/ws/attendance")
             .setAllowedOrigins("*");
     }
 }
