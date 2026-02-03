@@ -64,27 +64,29 @@ public class AttendanceWebSocketHandler implements WebSocketHandler {
     // -------------------------------
     // Handle incoming messages
     // -------------------------------
-    @Override
-    public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
+@Override
+public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
 
-        WebSocketSessionInfo info =
-                registry.getAllSessions().stream()
-                        .filter(s -> s.getSession().getId().equals(session.getId()))
-                        .findFirst()
-                        .orElse(null);
+    WebSocketSessionInfo info =
+            registry.getAllSessions().stream()
+                    .filter(s -> s.getSession().getId().equals(session.getId()))
+                    .findFirst()
+                    .orElse(null);
 
-        if (info == null) return;
+    if (info == null) return;
 
-        WebSocketMessageDto msg = objectMapper.readValue(
-                message.getPayload().toString(),
-                WebSocketMessageDto.class
-        );
+    WebSocketMessageDto msg = objectMapper.readValue(
+            message.getPayload().toString(),
+            WebSocketMessageDto.class
+    );
 
-        if (!"MARK_ATTENDANCE".equals(msg.getType())) {
-            return;
-        }
+    String type = msg.getType();
 
-        // Only STUDENTS can mark attendance
+    // -------------------------
+    // STUDENT: MARK_ATTENDANCE
+    // -------------------------
+    if ("MARK_ATTENDANCE".equals(type)) {
+
         if (!"STUDENT".equals(info.getRole())) {
             return;
         }
@@ -92,22 +94,51 @@ public class AttendanceWebSocketHandler implements WebSocketHandler {
         ActiveAttendanceSession activeSession =
                 sessionManager.getActiveSession().orElse(null);
 
-        if (activeSession == null) {
-            return;
-        }
+        if (activeSession == null) return;
 
         Boolean present = (Boolean) msg.getPayload().get("present");
         if (present == null) return;
 
         activeSession.markAttendance(info.getUserId(), present);
+
         System.out.println(
-    "[WS] Attendance marked → studentId=" 
-    + info.getUserId() 
-    + ", present=" 
-    + present
-);
-broadcastAttendanceUpdate(info.getUserId(), present);
+                "[WS] Attendance marked → studentId="
+                        + info.getUserId()
+                        + ", present="
+                        + present
+        );
+
+        broadcastAttendanceUpdate(info.getUserId(), present);
     }
+
+    // -------------------------
+    // TEACHER: END_SESSION
+    // -------------------------
+    else if ("END_SESSION".equals(type)) {
+
+        if (!"TEACHER".equals(info.getRole())) {
+            return;
+        }
+
+        System.out.println("[WS] Attendance session ended by teacher");
+
+        // Broadcast to all clients
+        ObjectNode endMsg = objectMapper.createObjectNode();
+        endMsg.put("type", "SESSION_ENDED");
+
+        registry.getAllSessions().forEach(ws -> {
+            try {
+                ws.getSession().sendMessage(
+                        new TextMessage(endMsg.toString())
+                );
+            } catch (Exception ignored) {}
+        });
+
+        // Clear in-memory session
+        sessionManager.clearSession();
+    }
+}
+
 
     // -------------------------------
     // On transport error
